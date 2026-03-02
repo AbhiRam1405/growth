@@ -31,7 +31,15 @@ const TaskHistory = () => {
         setLoading(true);
         setError('');
         try {
-            const data = await getTaskHistory(filters);
+            // Map empty strings to null for backend enum/criteria safety
+            const cleanFilters = { ...filters };
+            Object.keys(cleanFilters).forEach(key => {
+                if (cleanFilters[key] === '') {
+                    cleanFilters[key] = null;
+                }
+            });
+
+            const data = await getTaskHistory(cleanFilters);
             setTasks(data);
         } catch (err) {
             setError(err.message || 'Failed to load task history');

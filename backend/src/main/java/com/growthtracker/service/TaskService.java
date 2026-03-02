@@ -185,16 +185,17 @@ public class TaskService {
             AggregationOperation match = Aggregation.match(criteria);
             
             // Safer weight assignment using explicit ComparisonOperators.Eq
+            // addFields() is better than project() because it keeps all existing fields automatically.
             AggregationOperation addWeight = Aggregation.addFields()
                 .addField("prioWeight")
-                .withValue(ConditionalOperators.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("URGENT")).then(3)
-                    .otherwise(ConditionalOperators.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("HIGH")).then(2)
-                        .otherwise(ConditionalOperators.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("MEDIUM")).then(1)
+                .withValue(ConditionalOperators.Cond.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("URGENT")).then(3)
+                    .otherwise(ConditionalOperators.Cond.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("HIGH")).then(2)
+                        .otherwise(ConditionalOperators.Cond.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("MEDIUM")).then(1)
                             .otherwise(0))))
                 .build();
             
             AggregationOperation sort = Aggregation.sort(Sort.Direction.DESC, "prioWeight")
-                    .and(Sort.Direction.DESC, "completedAt"); // secondary sort
+                    .and(Sort.Direction.DESC, "completedAt");
             AggregationOperation skip = Aggregation.skip((long) page * size);
             AggregationOperation limit = Aggregation.limit(size);
             

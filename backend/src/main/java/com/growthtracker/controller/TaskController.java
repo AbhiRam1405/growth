@@ -55,6 +55,12 @@ public class TaskController {
 
     @PostMapping("/history")
     public List<Task> getTaskHistory(@RequestBody TaskHistoryFilterRequest filters) {
-        return taskService.getTaskHistory(filters);
+        try {
+            return taskService.getTaskHistory(filters);
+        } catch (Exception e) {
+            System.err.println("Error fetching task history: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 }
