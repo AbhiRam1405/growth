@@ -184,12 +184,12 @@ public class TaskService {
         if ("priority".equalsIgnoreCase(sortBy)) {
             AggregationOperation match = Aggregation.match(criteria);
             
-            // Safer weight assignment using nested ConditionalOperators.when
+            // Safer weight assignment using explicit ComparisonOperators.Eq
             AggregationOperation addWeight = Aggregation.addFields()
                 .addField("prioWeight")
-                .withValue(ConditionalOperators.when(ComparisonOperators.valueOf("priority").equalToValue("URGENT")).then(3)
-                    .otherwise(ConditionalOperators.when(ComparisonOperators.valueOf("priority").equalToValue("HIGH")).then(2)
-                        .otherwise(ConditionalOperators.when(ComparisonOperators.valueOf("priority").equalToValue("MEDIUM")).then(1)
+                .withValue(ConditionalOperators.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("URGENT")).then(3)
+                    .otherwise(ConditionalOperators.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("HIGH")).then(2)
+                        .otherwise(ConditionalOperators.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("MEDIUM")).then(1)
                             .otherwise(0))))
                 .build();
             
