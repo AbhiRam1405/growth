@@ -185,13 +185,13 @@ public class TaskService {
             AggregationOperation match = Aggregation.match(criteria);
             
             // Safer weight assignment using nested ConditionalOperators.when
-            // Note: withValue() returns the AggregationOperation directly, no .build() needed at the end.
             AggregationOperation addWeight = Aggregation.addFields()
                 .addField("prioWeight")
                 .withValue(ConditionalOperators.when(ComparisonOperators.valueOf("priority").equalToValue("URGENT")).then(3)
                     .otherwise(ConditionalOperators.when(ComparisonOperators.valueOf("priority").equalToValue("HIGH")).then(2)
                         .otherwise(ConditionalOperators.when(ComparisonOperators.valueOf("priority").equalToValue("MEDIUM")).then(1)
-                            .otherwise(0))));
+                            .otherwise(0))))
+                .build();
             
             AggregationOperation sort = Aggregation.sort(Sort.Direction.DESC, "prioWeight")
                     .and(Sort.Direction.DESC, "completedAt"); // secondary sort
