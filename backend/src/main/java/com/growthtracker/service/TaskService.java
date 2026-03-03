@@ -1,13 +1,14 @@
 package com.growthtracker.service;
 
-import com.growthtracker.dto.CompleteTaskRequest;
-import com.growthtracker.dto.TaskDTO;
-import com.growthtracker.dto.TaskHistoryFilterRequest;
+import com.growthtracker.dto.*;
 import com.growthtracker.exception.DuplicateTitleException;
 import com.growthtracker.exception.ResourceNotFoundException;
 import com.growthtracker.model.Task;
+import com.growthtracker.model.TaskCompletion;
+import com.growthtracker.model.TaskStatus;
 import com.growthtracker.repository.TaskRepository;
 import com.growthtracker.repository.TaskStatusRepository;
+import com.growthtracker.repository.TaskCompletionRepository;
 import com.growthtracker.model.Priority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +41,9 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final TaskStatusRepository taskStatusRepository;
+    private final TaskCompletionRepository taskCompletionRepository;
     private final MongoTemplate mongoTemplate;
+    private final DailySummaryService dailySummaryService;
 
     public List<Task> getAllTasks() {
         return taskRepository.findAll().stream()
@@ -78,6 +81,7 @@ public class TaskService {
             .frequency(dto.getFrequency())
             .scheduledDate(dto.getScheduledDate())
             .priority(dto.getPriority() != null ? dto.getPriority() : Priority.MEDIUM)
+            .mustDo(dto.isMustDo())
             .build();
         Task saved = taskRepository.save(task);
         log.info("Created task: {}", saved.getId());
@@ -96,26 +100,89 @@ public class TaskService {
         existing.setFrequency(dto.getFrequency());
         existing.setScheduledDate(dto.getScheduledDate());
         existing.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MEDIUM);
+        existing.setMustDo(dto.isMustDo());
         Task updated = taskRepository.save(existing);
         log.info("Updated task: {}", updated.getId());
         return updated;
     }
 
-    public Task completeTask(String id, CompleteTaskRequest request) {
+    public TaskWithStatusDTO completeTask(String id, CompleteTaskRequest request) {
         Task task = getTaskById(id);
+        java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.systemDefault());
 
-        if ("COMPLETED".equals(task.getStatus())) {
-            throw new IllegalStateException("Task already completed");
+        // Service-level duplicate check
+        if (taskCompletionRepository.existsByTaskIdAndDate(id, today)) {
+            throw new IllegalStateException("Task already completed today");
         }
 
-        task.setStatus("COMPLETED");
-        task.setCompletionNote(request.getNote());
-        task.setTimeSpent(request.getTimeSpent());
-        task.setCompletedAt(LocalDateTime.now());
+        // Create new completion record
+        TaskCompletion completion = TaskCompletion.builder()
+            .taskId(id)
+            .date(today)
+            .note(request.getNote())
+            .timeSpent(request.getTimeSpent())
+            .completedAt(LocalDateTime.now())
+            .build();
+        
+        taskCompletionRepository.save(completion);
 
-        Task saved = taskRepository.save(task);
-        log.info("Task {} marked as COMPLETED", id);
-        return saved;
+        // Update TaskStatus for compatibility (streaks, etc.)
+        TaskStatus status = taskStatusRepository.findByTaskIdAndDate(id, today)
+            .orElse(TaskStatus.builder().taskId(id).date(today).build());
+        status.setCompleted(true);
+        taskStatusRepository.save(status);
+
+        // Recompute summary
+        dailySummaryService.recompute(today);
+
+        log.info("Task {} marked as COMPLETED for today", id);
+        
+        return TaskWithStatusDTO.builder()
+            .taskId(task.getId())
+            .title(task.getTitle())
+            .category(task.getCategory())
+            .frequency(task.getFrequency())
+            .priority(task.getPriority())
+            .status("COMPLETED")
+            .completed(true)
+            .completionNote(completion.getNote())
+            .timeSpent(completion.getTimeSpent())
+            .build();
+    }
+
+    public List<TaskWithStatusDTO> getTodayTasks() {
+        java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.systemDefault());
+        List<Task> allTasks = taskRepository.findAll();
+        List<TaskCompletion> todayCompletions = taskCompletionRepository.findByDate(today);
+
+        java.util.Map<String, TaskCompletion> completionMap = todayCompletions.stream()
+            .collect(java.util.stream.Collectors.toMap(TaskCompletion::getTaskId, c -> c));
+
+        return allTasks.stream()
+            .map(task -> {
+                TaskCompletion completion = completionMap.get(task.getId());
+                boolean isCompleted = completion != null;
+                
+                return TaskWithStatusDTO.builder()
+                    .taskId(task.getId())
+                    .title(task.getTitle())
+                    .category(task.getCategory())
+                    .frequency(task.getFrequency())
+                    .priority(task.getPriority())
+                    .status(isCompleted ? "COMPLETED" : "PENDING")
+                    .completed(isCompleted)
+                    .completionNote(isCompleted ? completion.getNote() : null)
+                    .timeSpent(isCompleted ? completion.getTimeSpent() : null)
+                    .build();
+            })
+            .sorted((t1, t2) -> {
+                // PENDING first
+                if (!t1.isCompleted() && t2.isCompleted()) return -1;
+                if (t1.isCompleted() && !t2.isCompleted()) return 1;
+                // Weight DESC
+                return Integer.compare(t2.getPriority().getWeight(), t1.getPriority().getWeight());
+            })
+            .toList();
     }
 
     public void deleteTask(String id) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getTasksWithStatus, markStatus, getDailySummary } from '../services/statusService';
 import { getWeeklyAnalytics, getRandomQuote, getSuggestion } from '../services/analyticsService';
-import { completeTask } from '../services/taskService';
+import { completeTask, getTodayTasks } from '../services/taskService';
 import TaskCard from '../components/TaskCard';
 import TaskCompletionModal from '../components/TaskCompletionModal';
 import SummaryCard from '../components/SummaryCard';
@@ -28,12 +28,14 @@ const Dashboard = () => {
     const [modalLoading, setModalLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const isToday = selectedDate === todayStr;
+
     const loadData = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
             const [tasksData, summaryData, analyticsData, quoteData, suggData] = await Promise.all([
-                getTasksWithStatus(selectedDate),
+                isToday ? getTodayTasks() : getTasksWithStatus(selectedDate),
                 getDailySummary(selectedDate),
                 getWeeklyAnalytics(),
                 getRandomQuote(),
@@ -55,7 +57,7 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedDate]);
+    }, [selectedDate, isToday]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
@@ -77,11 +79,8 @@ const Dashboard = () => {
     const handleCompleteSave = async (completionData) => {
         setModalLoading(true);
         try {
-            // 1. Update overall Task status + Note + Time
+            // Updated to use the new recurring task completion API
             await completeTask(completingTask.id, completionData);
-
-            // 2. Mark as completed for the day in TaskStatus
-            await markStatus(completingTask.id, selectedDate, true);
 
             setCompletingTask(null);
             await loadData();
@@ -103,7 +102,6 @@ const Dashboard = () => {
 
     const completionPct = summary?.completionPercentage?.toFixed(1) ?? '0.0';
     const streak = summary?.streak ?? 0;
-    const isToday = selectedDate === todayStr;
 
     return (
         <div className="dashboard-page">

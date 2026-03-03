@@ -26,4 +26,6 @@ public class TaskDTO {
 
     @NotNull(message = "Priority is required")
     private Priority priority;
+
+    private boolean mustDo;
 }

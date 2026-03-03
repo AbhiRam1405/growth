@@ -1,9 +1,8 @@
 package com.growthtracker.controller;
 
-import com.growthtracker.dto.CompleteTaskRequest;
-import com.growthtracker.dto.TaskDTO;
-import com.growthtracker.dto.TaskHistoryFilterRequest;
+import com.growthtracker.dto.*;
 import com.growthtracker.model.Task;
+import com.growthtracker.service.ReminderService;
 import com.growthtracker.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +18,7 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final ReminderService reminderService;
 
     @GetMapping
     public ResponseEntity<List<Task>> getAllTasks() {
@@ -42,10 +42,15 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{id}/complete")
-    public ResponseEntity<Task> completeTask(@PathVariable String id,
-                                             @Valid @RequestBody CompleteTaskRequest request) {
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<TaskWithStatusDTO> completeTask(@PathVariable String id,
+                                              @Valid @RequestBody CompleteTaskRequest request) {
         return ResponseEntity.ok(taskService.completeTask(id, request));
+    }
+
+    @GetMapping("/today")
+    public ResponseEntity<List<TaskWithStatusDTO>> getTodayTasks() {
+        return ResponseEntity.ok(taskService.getTodayTasks());
     }
 
     @GetMapping("/{id}")
@@ -62,5 +67,11 @@ public class TaskController {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    @GetMapping("/trigger-reminders")
+    public ResponseEntity<String> triggerReminders() {
+        reminderService.sendMustDoReminders();
+        return ResponseEntity.ok("Reminder check triggered manually.");
     }
 }

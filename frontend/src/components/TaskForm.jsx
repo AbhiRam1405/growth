@@ -9,6 +9,7 @@ const TaskForm = ({ initialData, onSubmit, onCancel, loading }) => {
         category: 'Coding',
         frequency: 'Daily',
         priority: 'MEDIUM',
+        mustDo: false,
         ...initialData,
     });
     const [error, setError] = useState('');
@@ -76,6 +77,18 @@ const TaskForm = ({ initialData, onSubmit, onCancel, loading }) => {
                         <option value="HIGH">High</option>
                         <option value="URGENT">Urgent 🔥</option>
                     </select>
+                </div>
+
+                <div className="form-group checkbox-group">
+                    <label className="checkbox-label">
+                        <input
+                            type="checkbox"
+                            name="mustDo"
+                            checked={form.mustDo}
+                            onChange={(e) => setForm(prev => ({ ...prev, mustDo: e.target.checked }))}
+                        />
+                        <span>Daily "Must Do" (Reminds at 15:00 & 21:00)</span>
+                    </label>
                 </div>
             </div>
 

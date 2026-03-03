@@ -22,6 +22,9 @@ const Navbar = () => {
                 <NavLink to="/history" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                     Task History
                 </NavLink>
+                <NavLink to="/learning-log" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                    Learning Log
+                </NavLink>
             </div>
         </nav>
     );

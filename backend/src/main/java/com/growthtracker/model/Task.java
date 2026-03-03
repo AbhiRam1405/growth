@@ -65,4 +65,10 @@ public class Task {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    private boolean mustDo = false;
+
+    @Builder.Default
+    private String userEmail = "abhishek25ict@gmail.com";
 }

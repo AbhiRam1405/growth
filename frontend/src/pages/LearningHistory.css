@@ -1,0 +1,213 @@
+.learning-history-page {
+    padding: 1rem 0;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.btn-add {
+    background: #4361ee;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filter-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.25rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.filter-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 0.6rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.filter-actions.full-width {
+    grid-column: 1 / -1;
+}
+
+.btn-filter {
+    background: #4361ee;
+    color: white;
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.btn-reset {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.history-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.log-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.log-table th {
+    background: #f8fafc;
+    padding: 1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #64748b;
+    border-bottom: 1.5px solid #f1f5f9;
+}
+
+.log-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.95rem;
+    color: #1e293b;
+}
+
+.log-subject {
+    font-weight: 700;
+    color: #4361ee;
+}
+
+.log-topic {
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.log-task {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #475569;
+}
+
+.no-task {
+    color: #cbd5e1;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.diff-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.diff-easy {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.diff-medium {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.diff-hard {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.action-btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-view {
+    padding: 0.4rem 0.8rem;
+    background: #f1f5f9;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.btn-delete {
+    padding: 0.4rem;
+    color: #94a3b8;
+    transition: color 0.2s;
+}
+
+.btn-delete:hover {
+    color: #ef4444;
+}
+
+.empty-history {
+    padding: 4rem;
+    text-align: center;
+    color: #64748b;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .filter-actions.full-width {
+        flex-direction: column;
+    }
+}

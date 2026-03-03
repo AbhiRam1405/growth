@@ -120,7 +120,8 @@ const ManageTasks = () => {
                             category: editingTask.category,
                             frequency: editingTask.frequency,
                             scheduledDate: editingTask.scheduledDate,
-                            priority: editingTask.priority
+                            priority: editingTask.priority,
+                            mustDo: editingTask.mustDo
                         } : undefined}
                         onSubmit={handleSubmit}
                         onCancel={handleCancel}
@@ -157,7 +158,10 @@ const ManageTasks = () => {
                         <tbody>
                             {tasks.map(task => (
                                 <tr key={task.id} className="task-row">
-                                    <td className="task-name-cell">{task.title}</td>
+                                    <td className="task-name-cell">
+                                        {task.title}
+                                        {task.mustDo && <span className="must-do-mini-badge">Must Do</span>}
+                                    </td>
                                     <td>
                                         <span className="cat-pill"
                                             style={{

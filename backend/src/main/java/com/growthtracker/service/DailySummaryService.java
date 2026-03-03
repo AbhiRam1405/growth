@@ -3,9 +3,11 @@ package com.growthtracker.service;
 import com.growthtracker.model.DailySummary;
 import com.growthtracker.model.Task;
 import com.growthtracker.model.TaskStatus;
+import com.growthtracker.model.TaskCompletion;
 import com.growthtracker.repository.DailySummaryRepository;
 import com.growthtracker.repository.TaskRepository;
 import com.growthtracker.repository.TaskStatusRepository;
+import com.growthtracker.repository.TaskCompletionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class DailySummaryService {
 
     private final TaskRepository taskRepository;
     private final TaskStatusRepository taskStatusRepository;
+    private final TaskCompletionRepository taskCompletionRepository;
     private final DailySummaryRepository dailySummaryRepository;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
@@ -60,18 +63,17 @@ public class DailySummaryService {
         }
 
         // Count completed streak tasks for today
-        // A task is completed if it has a TaskStatus record marked true OR if its global status is COMPLETED
-        List<TaskStatus> todayStatuses = taskStatusRepository.findByDate(date);
-        java.util.Set<String> dailyCompletedIds = todayStatuses.stream()
-            .filter(TaskStatus::isCompleted)
-            .map(TaskStatus::getTaskId)
+        // A task is completed if it has a TaskCompletion record for today
+        List<TaskCompletion> todayCompletions = taskCompletionRepository.findByDate(date);
+        java.util.Set<String> completedIds = todayCompletions.stream()
+            .map(TaskCompletion::getTaskId)
             .collect(java.util.stream.Collectors.toSet());
 
         long completedCount = streakTasks.stream()
-            .filter(t -> dailyCompletedIds.contains(t.getId()) || "COMPLETED".equals(t.getStatus()))
+            .filter(t -> completedIds.contains(t.getId()))
             .count();
 
-        double completionPct = (double) completedCount / totalStreakTasks * 100.0;
+        double completionPct = (totalStreakTasks == 0) ? 0.0 : (double) completedCount / totalStreakTasks * 100.0;
 
         // Determine streak from yesterday's summary
         String yesterdayStr = date.minusDays(1).format(DATE_FMT);

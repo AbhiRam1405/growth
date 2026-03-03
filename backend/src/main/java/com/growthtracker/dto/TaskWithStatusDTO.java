@@ -24,4 +24,6 @@ public class TaskWithStatusDTO {
     private String status;
     private Priority priority;
     private boolean completed;
+    private String completionNote;
+    private Integer timeSpent;
 }

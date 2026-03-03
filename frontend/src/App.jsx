@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import ManageTasks from './pages/ManageTasks';
 import Analytics from './pages/Analytics';
 import TaskHistory from './pages/TaskHistory';
+import LearningHistory from './pages/LearningHistory';
 import './index.css';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
             <Route path="/tasks" element={<ManageTasks />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/history" element={<TaskHistory />} />
+            <Route path="/learning-log" element={<LearningHistory />} />
           </Routes>
         </main>
       </div>

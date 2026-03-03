@@ -88,6 +88,19 @@
 
 .task-name-cell {
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.must-do-mini-badge {
+    padding: 2px 6px;
+    background: #fff7ed;
+    color: #ea580c;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 4px;
+    text-transform: uppercase;
 }
 
 .cat-pill,

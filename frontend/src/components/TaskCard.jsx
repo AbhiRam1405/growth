@@ -30,13 +30,19 @@ const TaskCard = ({ task, onToggle }) => {
                 <span className="custom-checkbox" />
             </label>
             <div className="task-info">
-                <span className="task-title">{task.title}</span>
+                <div className="task-title-row">
+                    <span className="task-title">{task.title}</span>
+                    <span className={`status-badge ${task.status.toLowerCase()}`}>
+                        {task.status}
+                    </span>
+                </div>
                 <div className="task-meta">
                     <span className="task-badge category-badge"
                         style={{ background: color + '20', color }}>
                         {task.category}
                     </span>
                     <span className="task-badge freq-badge">{task.frequency}</span>
+                    {task.mustDo && <span className="task-badge must-do-badge">⭐ Must Do</span>}
                     <PriorityBadge priority={task.priority} />
                 </div>
             </div>

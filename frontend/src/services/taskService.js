@@ -6,7 +6,9 @@ export const createTask = (task) => api.post('/tasks', task).then(r => r.data);
 
 export const updateTask = (id, task) => api.put(`/tasks/${id}`, task).then(r => r.data);
 
-export const completeTask = (id, data) => api.put(`/tasks/${id}/complete`, data).then(r => r.data);
+export const completeTask = (id, data) => api.post(`/tasks/${id}/complete`, data).then(r => r.data);
+
+export const getTodayTasks = () => api.get('/tasks/today').then(r => r.data);
 
 export const getTask = (id) => api.get(`/tasks/${id}`).then(r => r.data);
 
