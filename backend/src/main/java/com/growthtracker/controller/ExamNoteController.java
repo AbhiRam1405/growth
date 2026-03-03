@@ -12,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/exam-notes")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class ExamNoteController {
     private final ExamNoteService examNoteService;
 
