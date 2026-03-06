@@ -13,6 +13,6 @@ export const getTodayTasks = () => api.get('/tasks/today').then(r => r.data);
 export const getTask = (id) => api.get(`/tasks/${id}`).then(r => r.data);
 
 export const getTaskHistory = (filters) =>
-    api.post('/tasks/history', filters).then(r => r.data);
+    api.post('/tasks/query', filters).then(r => r.data);
 
 export const deleteTask = (id) => api.delete(`/tasks/${id}`);

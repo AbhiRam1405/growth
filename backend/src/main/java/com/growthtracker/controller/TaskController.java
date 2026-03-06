@@ -58,7 +58,7 @@ public class TaskController {
         return taskService.getTaskById(id);
     }
 
-    @PostMapping("/history")
+    @PostMapping("/query")
     public List<Task> getTaskHistory(@RequestBody TaskHistoryFilterRequest filters) {
         try {
             return taskService.getTaskHistory(filters);
