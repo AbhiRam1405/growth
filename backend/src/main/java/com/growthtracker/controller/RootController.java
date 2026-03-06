@@ -23,4 +23,10 @@ public class RootController {
         response.put("docs", "Use /api prefix for all endpoints");
         return response;
     }
+
+    /** Lightweight health check — used by frontend keep-alive ping */
+    @GetMapping("/api/health")
+    public Map<String, String> health() {
+        return Map.of("status", "UP");
+    }
 }

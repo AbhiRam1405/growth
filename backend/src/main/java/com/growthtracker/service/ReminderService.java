@@ -24,6 +24,7 @@ public class ReminderService {
     private final TaskCompletionRepository taskCompletionRepository;
     private final ReminderLogRepository reminderLogRepository;
     private final EmailService emailService;
+    private final TaskService taskService;
 
     /**
      * Scheduled task to send reminders at 3 PM and 9 PM.
@@ -72,5 +73,15 @@ public class ReminderService {
                 log.debug("Task: {} already completed today. Skipping reminder.", task.getTitle());
             }
         }
+    }
+
+    /**
+     * Daily cleanup of expired One-time tasks at midnight.
+     * Cron: 0 0 0 * * ?
+     */
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Kolkata")
+    public void cleanupOneTimeTasks() {
+        log.info("Starting daily cleanup of expired one-time tasks...");
+        taskService.deleteExpiredOneTimeTasks();
     }
 }

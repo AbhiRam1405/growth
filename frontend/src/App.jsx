@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -7,9 +7,13 @@ import Analytics from './pages/Analytics';
 import TaskHistory from './pages/TaskHistory';
 import LearningHistory from './pages/LearningHistory';
 import ExamNotes from './pages/ExamNotes';
+import { pingBackend } from './services/api';
 import './index.css';
 
 function App() {
+  // Wake up the Render backend on app load (free tier spins down after inactivity)
+  useEffect(() => { pingBackend(); }, []);
+
   return (
     <BrowserRouter>
       <div className="app-layout">

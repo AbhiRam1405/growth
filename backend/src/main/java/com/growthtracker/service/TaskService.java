@@ -132,6 +132,13 @@ public class TaskService {
         status.setCompleted(true);
         taskStatusRepository.save(status);
 
+        // ✅ Update the Task document itself so getTaskHistory queries work
+        task.setStatus("COMPLETED");
+        task.setCompletedAt(completion.getCompletedAt());
+        task.setCompletionNote(request.getNote());
+        task.setTimeSpent(request.getTimeSpent());
+        taskRepository.save(task);
+
         // Recompute summary
         dailySummaryService.recompute(today);
 
@@ -190,6 +197,23 @@ public class TaskService {
         taskStatusRepository.deleteByTaskId(id);
         taskRepository.deleteById(id);
         log.info("Deleted task {} and its status history.", id);
+    }
+
+    /**
+     * Automatic cleanup for One-time tasks that have passed their scheduled date.
+     * Deletes the task and its status records from the DB.
+     */
+    public void deleteExpiredOneTimeTasks() {
+        java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
+        java.util.List<Task> expiredTasks = taskRepository.findByFrequencyAndScheduledDateBefore("One-time", today);
+        
+        if (!expiredTasks.isEmpty()) {
+            log.info("Found {} expired one-time tasks for cleanup", expiredTasks.size());
+            for (Task task : expiredTasks) {
+                deleteTask(task.getId());
+            }
+            log.info("Expired one-time tasks cleanup complete.");
+        }
     }
 
     public List<Task> getTaskHistory(TaskHistoryFilterRequest filters) {
