@@ -59,7 +59,7 @@ public class TaskController {
     }
 
     @PostMapping("/query")
-    public List<Task> getTaskHistory(@RequestBody TaskHistoryFilterRequest filters) {
+    public List<TaskHistoryDTO> getTaskHistory(@RequestBody TaskHistoryFilterRequest filters) {
         try {
             return taskService.getTaskHistory(filters);
         } catch (Exception e) {

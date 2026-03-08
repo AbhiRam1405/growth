@@ -216,7 +216,7 @@ public class TaskService {
         }
     }
 
-    public List<Task> getTaskHistory(TaskHistoryFilterRequest filters) {
+    public List<TaskHistoryDTO> getTaskHistory(TaskHistoryFilterRequest filters) {
         if (filters == null) {
             filters = new TaskHistoryFilterRequest();
         }
@@ -227,56 +227,67 @@ public class TaskService {
             throw new IllegalArgumentException("Start date cannot be after end date");
         }
 
-        Query query = new Query();
-        
-        // 2. Always filter status = "COMPLETED"
-        Criteria criteria = Criteria.where("status").is("COMPLETED");
-
-        // 3. Optional Filters
-        if (StringUtils.hasText(filters.getCategory())) {
-            criteria.and("category").is(filters.getCategory());
-        }
-
+        // 2. Initial Match on TaskCompletion (date range and time spent)
+        Criteria completionCriteria = new Criteria();
         if (filters.getStartDate() != null && filters.getEndDate() != null) {
-            criteria.and("completedAt").gte(filters.getStartDate().atStartOfDay())
-                                       .lte(filters.getEndDate().atTime(LocalTime.MAX));
+            completionCriteria.and("date").gte(filters.getStartDate()).lte(filters.getEndDate());
         } else if (filters.getStartDate() != null) {
-            criteria.and("completedAt").gte(filters.getStartDate().atStartOfDay());
+            completionCriteria.and("date").gte(filters.getStartDate());
         } else if (filters.getEndDate() != null) {
-            criteria.and("completedAt").lte(filters.getEndDate().atTime(LocalTime.MAX));
+            completionCriteria.and("date").lte(filters.getEndDate());
         }
 
         if (filters.getMinTimeSpent() != null && filters.getMaxTimeSpent() != null) {
-            criteria.and("timeSpent").gte(filters.getMinTimeSpent()).lte(filters.getMaxTimeSpent());
+            completionCriteria.and("timeSpent").gte(filters.getMinTimeSpent()).lte(filters.getMaxTimeSpent());
         } else if (filters.getMinTimeSpent() != null) {
-            criteria.and("timeSpent").gte(filters.getMinTimeSpent());
+            completionCriteria.and("timeSpent").gte(filters.getMinTimeSpent());
         } else if (filters.getMaxTimeSpent() != null) {
-            criteria.and("timeSpent").lte(filters.getMaxTimeSpent());
+            completionCriteria.and("timeSpent").lte(filters.getMaxTimeSpent());
         }
 
-        if (StringUtils.hasText(filters.getSearchKeyword())) {
-            criteria.and("title").regex(filters.getSearchKeyword(), "i");
-        }
+        // 3. SetupAggregation
+        java.util.List<AggregationOperation> operations = new java.util.ArrayList<>();
+        operations.add(Aggregation.match(completionCriteria));
+        
+        // Convert taskId string to ObjectId for joining
+        // Note: Use project or addFields to create the objectId field
+        operations.add(Aggregation.addFields().addField("taskIdObj")
+                .withValue(org.springframework.data.mongodb.core.aggregation.ConvertOperators.ToObjectId.toObjectId("$taskId")).build());
 
+        // Lookup task details
+        operations.add(Aggregation.lookup("tasks", "taskIdObj", "_id", "task"));
+        operations.add(Aggregation.unwind("task"));
+
+        // 4. Match on Joined Task (category, priority, searchKeyword)
+        Criteria taskCriteria = new Criteria();
+        if (StringUtils.hasText(filters.getCategory())) {
+            taskCriteria.and("task.category").is(filters.getCategory());
+        }
         if (filters.getPriority() != null) {
-            criteria.and("priority").is(filters.getPriority());
+            taskCriteria.and("task.priority").is(filters.getPriority().name());
         }
+        if (StringUtils.hasText(filters.getSearchKeyword())) {
+            taskCriteria.and("task.title").regex(filters.getSearchKeyword(), "i");
+        }
+        operations.add(Aggregation.match(taskCriteria));
 
-        query.addCriteria(criteria);
+        // 5. Project to TaskHistoryDTO
+        AggregationOperation project = Aggregation.project()
+            .and("_id").as("id")
+            .and("taskId").as("taskId")
+            .and("task.title").as("title")
+            .and("task.category").as("category")
+            .and("task.frequency").as("frequency")
+            .and("task.priority").as("priority")
+            .and("completedAt").as("completedAt")
+            .and("timeSpent").as("timeSpent")
+            .and("note").as("completionNote")
+            .andExpression("'COMPLETED'").as("status");
+        operations.add(project);
 
-        // 4. Sorting
+        // 6. Sorting
         String sortBy = filters.getSortBy();
-        
-        // 5. Pagination
-        int page = (filters.getPage() != null && filters.getPage() >= 0) ? filters.getPage() : 0;
-        int size = (filters.getSize() != null && filters.getSize() > 0) ? filters.getSize() : 10;
-        
-        // If sorting by priority, we need custom weights via Aggregation
         if ("priority".equalsIgnoreCase(sortBy)) {
-            AggregationOperation match = Aggregation.match(criteria);
-            
-            // Safer weight assignment using explicit ComparisonOperators.Eq
-            // addFields() is better than project() because it keeps all existing fields automatically.
             AggregationOperation addWeight = Aggregation.addFields()
                 .addField("prioWeight")
                 .withValue(ConditionalOperators.Cond.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("URGENT")).then(3)
@@ -284,27 +295,23 @@ public class TaskService {
                         .otherwise(ConditionalOperators.Cond.when(ComparisonOperators.Eq.valueOf("priority").equalToValue("MEDIUM")).then(1)
                             .otherwise(0))))
                 .build();
-            
-            AggregationOperation sort = Aggregation.sort(Sort.Direction.DESC, "prioWeight")
-                    .and(Sort.Direction.DESC, "completedAt");
-            AggregationOperation skip = Aggregation.skip((long) page * size);
-            AggregationOperation limit = Aggregation.limit(size);
-            
-            TypedAggregation<Task> aggregation = Aggregation.newAggregation(Task.class, match, addWeight, sort, skip, limit);
-            return mongoTemplate.aggregate(aggregation, Task.class).getMappedResults();
-        }
-
-        // Standard Query for other cases
-        if ("oldest".equalsIgnoreCase(sortBy)) {
-            query.with(Sort.by(Sort.Direction.ASC, "completedAt"));
+            operations.add(addWeight);
+            operations.add(Aggregation.sort(Sort.Direction.DESC, "prioWeight").and(Sort.Direction.DESC, "completedAt"));
+        } else if ("oldest".equalsIgnoreCase(sortBy)) {
+            operations.add(Aggregation.sort(Sort.Direction.ASC, "completedAt"));
         } else if ("time_desc".equalsIgnoreCase(sortBy)) {
-            query.with(Sort.by(Sort.Direction.DESC, "timeSpent"));
+            operations.add(Aggregation.sort(Sort.Direction.DESC, "timeSpent").and(Sort.Direction.DESC, "completedAt"));
         } else {
-            // Default: latest completed first
-            query.with(Sort.by(Sort.Direction.DESC, "completedAt"));
+            operations.add(Aggregation.sort(Sort.Direction.DESC, "completedAt"));
         }
 
-        query.with(PageRequest.of(page, size));
-        return mongoTemplate.find(query, Task.class);
+        // 7. Pagination
+        int page = (filters.getPage() != null && filters.getPage() >= 0) ? filters.getPage() : 0;
+        int size = (filters.getSize() != null && filters.getSize() > 0) ? filters.getSize() : 10;
+        operations.add(Aggregation.skip((long) page * size));
+        operations.add(Aggregation.limit(size));
+
+        TypedAggregation<TaskCompletion> aggregation = Aggregation.newAggregation(TaskCompletion.class, operations);
+        return mongoTemplate.aggregate(aggregation, TaskHistoryDTO.class).getMappedResults();
     }
 }
